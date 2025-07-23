@@ -1,16 +1,10 @@
 <script setup>
 import { ref } from 'vue';
-import { Amplify } from 'aws-amplify';
-import { generateClient } from 'aws-amplify/api';
 import { uploadData, getUrl, remove, list } from 'aws-amplify/storage';
 import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
-import { createProduct, createUser } from '../graphql/mutations';
-import { getUser } from '../graphql/queries';
+import { createProduct } from '../graphql/mutations';
 import { useRouter } from 'vue-router';
-import awsconfig from '../amplifyconfiguration.json';
-
-Amplify.configure(awsconfig);
-const client = generateClient();
+import api from '../utils/api-client';
 
 const router = useRouter();
 const title = ref('');
@@ -26,7 +20,6 @@ const checkAuth = async () => {
   try {
     const user = await getCurrentUser();
     isAuthenticated.value = true;
-    console.log('User is authenticated:', user);
   } catch (error) {
     isAuthenticated.value = false;
     console.error('User is not authenticated');
@@ -102,21 +95,15 @@ const handleSubmit = async () => {
       ownerId: userId // Add the required ownerId field
     };
     
-    console.log('Creating product with input:', productInput);
-    
     try {
-      // Use the generated client for GraphQL operations with the ID token
-      const response = await client.graphql({
+      // Use our centralized API client that automatically handles authentication
+      const response = await api.graphql({
         query: createProduct,
-        variables: { input: productInput },
-        authMode: 'AMAZON_COGNITO_USER_POOLS',
-        authToken: tokens.idToken.toString()
+        variables: { input: productInput }
       });
       
-      console.log('Product created:', response);
-      
-      // Redirect to home page after successful creation
-      router.push('/');
+      // Redirect to products page after successful creation
+      router.push('/products');
     } catch (graphqlError) {
       // If we get an error about the owner field, we can still consider this a success
       // since the product was created but there's just an issue with the response
