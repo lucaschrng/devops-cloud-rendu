@@ -1,0 +1,55 @@
+# This schema configures a GraphQL API with PostgreSQL database
+# Learn more about authorization rules here: https://docs.amplify.aws/cli/graphql/authorization-rules
+
+input AMPLIFY { globalAuthRule: AuthRule = { allow: public } } # FOR TESTING ONLY!
+
+type User @model @auth(rules: [{ allow: owner }, { allow: private, operations: [read] }]) {
+  id: ID!
+  username: String!
+  email: String!
+  firstName: String
+  lastName: String
+  products: [Product] @hasMany(indexName: "byOwner", fields: ["id"])
+  comments: [Comment] @hasMany(indexName: "byAuthor", fields: ["id"])
+  createdAt: AWSDateTime
+  updatedAt: AWSDateTime
+}
+
+type Product @model @auth(
+  rules: [
+    { allow: owner, operations: [create, read, update, delete] },
+    { allow: private, operations: [read] }
+  ]
+) {
+  id: ID!
+  title: String!
+  description: String!
+  imageUrl: String
+  owner: User @belongsTo(fields: ["ownerId"])
+  ownerId: ID! @index(name: "byOwner")
+  comments: [Comment] @hasMany(indexName: "byProduct", fields: ["id"])
+  createdAt: AWSDateTime
+  updatedAt: AWSDateTime
+}
+
+type Comment @model @auth(
+  rules: [
+    { allow: owner, operations: [create, read, update, delete] },
+    { allow: private, operations: [read] }
+  ]
+) {
+  id: ID!
+  content: String!
+  product: Product @belongsTo(fields: ["productId"])
+  productId: ID! @index(name: "byProduct")
+  author: User @belongsTo(fields: ["authorId"])
+  authorId: ID! @index(name: "byAuthor")
+  createdAt: AWSDateTime
+  updatedAt: AWSDateTime
+}
+
+# Queries to support homepage statistics
+type Query {
+  getUserCount: Int @function(name: "getUserCount-${env}")
+  getProductCount: Int @function(name: "getProductCount-${env}")
+}
