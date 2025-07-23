@@ -3,7 +3,8 @@
     <header>
       <nav>
         <router-link to="/">Home</router-link> |
-        <router-link to="/auth">Auth</router-link>
+        <router-link to="/auth">Auth</router-link> |
+        <router-link to="/create-product">Create Product</router-link>
       </nav>
     </header>
     

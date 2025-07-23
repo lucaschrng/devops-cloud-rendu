@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Auth from '../pages/Auth.vue'
+import CreateProduct from '../pages/CreateProduct.vue'
 
 // Define routes
 const routes = [
@@ -12,6 +13,12 @@ const routes = [
     path: '/auth',
     name: 'Auth',
     component: Auth
+  },
+  {
+    path: '/create-product',
+    name: 'CreateProduct',
+    component: CreateProduct,
+    meta: { requiresAuth: true }
   }
 ]
 
