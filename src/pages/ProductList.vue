@@ -3,6 +3,11 @@ import { ref, onMounted } from 'vue';
 import { listProducts } from '../graphql/queries';
 import { useRouter } from 'vue-router';
 import api from '../utils/api-client';
+import { Button } from '@/components/ui/button';
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { PlusCircle, ArrowRight } from 'lucide-vue-next';
 
 const router = useRouter();
 
@@ -43,177 +48,90 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="product-list">
-    <h1>Products</h1>
-    
-    <div v-if="error" class="error-message">
-      {{ error }}
+  <div class="container mx-auto py-8 px-4">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold">Products</h1>
+      <router-link to="/create-product">
+        <Button>
+          <PlusCircle class="mr-2 h-4 w-4" />
+          Create Product
+        </Button>
+      </router-link>
     </div>
     
-    <div v-if="loading" class="loading">
-      Loading products...
+    <!-- Error state -->
+    <div v-if="error" class="bg-destructive/15 text-destructive p-4 rounded-md mb-6">
+      <p>{{ error }}</p>
     </div>
     
-    <div v-else-if="products.length === 0" class="no-products">
-      <p>No products found.</p>
-      <router-link to="/create-product" class="create-link">Create a product</router-link>
-    </div>
-    
-    <div v-else class="products-grid">
-      <div 
-        v-for="product in products" 
-        :key="product.id" 
-        class="product-card"
-        @click="viewProductDetails(product.id)"
-      >
-        <div v-if="product.imageUrl" class="product-image">
-          <img :src="product.imageUrl" :alt="product.title" />
-        </div>
-        <div v-else class="product-image placeholder">
-          <span>No image</span>
-        </div>
-        
-        <div class="product-info">
-          <h2 class="product-title">{{ product.title }}</h2>
-          <p class="product-description">{{ product.description.length > 100 ? product.description.substring(0, 100) + '...' : product.description }}</p>
-          <p class="product-date">Created: {{ new Date(product.createdAt).toLocaleDateString() }}</p>
+    <!-- Loading state -->
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-for="i in 6" :key="i" class="flex flex-col space-y-3">
+        <Skeleton class="h-[200px] w-full rounded-lg" />
+        <div class="space-y-2">
+          <Skeleton class="h-4 w-3/4" />
+          <Skeleton class="h-4 w-full" />
+          <Skeleton class="h-4 w-1/2" />
         </div>
       </div>
     </div>
     
-    <div class="create-product-button">
-      <router-link to="/create-product" class="create-button">+ Create New Product</router-link>
+    <!-- Empty state -->
+    <Card v-else-if="products.length === 0" class="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>No products found</CardTitle>
+        <CardDescription>Get started by creating your first product</CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <router-link to="/create-product" class="w-full">
+          <Button class="w-full">
+            <PlusCircle class="mr-2 h-4 w-4" />
+            Create Product
+          </Button>
+        </router-link>
+      </CardFooter>
+    </Card>
+    
+    <!-- Products grid -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <Card 
+        v-for="product in products" 
+        :key="product.id" 
+        class="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+        @click="viewProductDetails(product.id)"
+      >
+        <!-- Product image -->
+        <div class="aspect-video w-full overflow-hidden bg-muted">
+          <img 
+            v-if="product.imageUrl" 
+            :src="product.imageUrl" 
+            :alt="product.title" 
+            class="h-full w-full object-cover transition-all hover:scale-105"
+          />
+          <div v-else class="h-full w-full flex items-center justify-center text-muted-foreground">
+            No image available
+          </div>
+        </div>
+        
+        <CardHeader>
+          <CardTitle class="line-clamp-1">{{ product.title }}</CardTitle>
+          <CardDescription class="line-clamp-2">
+            {{ product.description }}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardFooter class="flex justify-between">
+          <Badge variant="outline" class="text-xs">
+            {{ new Date(product.createdAt).toLocaleDateString() }}
+          </Badge>
+          <Button variant="ghost" size="sm" class="gap-1">
+            View
+            <ArrowRight class="h-4 w-4" />
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   </div>
 </template>
 
-<style scoped>
-.product-list {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-h1 {
-  margin-bottom: 30px;
-  text-align: center;
-}
-
-.error-message {
-  background-color: #ffebee;
-  color: #c62828;
-  padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  font-size: 18px;
-  color: #666;
-}
-
-.no-products {
-  text-align: center;
-  padding: 40px;
-}
-
-.create-link {
-  display: inline-block;
-  margin-top: 15px;
-  padding: 10px 20px;
-  background-color: #1976d2;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 25px;
-}
-
-.product-card {
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s, box-shadow 0.3s;
-  cursor: pointer;
-  background-color: white;
-}
-
-.product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-}
-
-.product-image {
-  height: 180px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f5f5f5;
-}
-
-.product-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.product-image.placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #e0e0e0;
-  color: #757575;
-}
-
-.product-info {
-  padding: 15px;
-}
-
-.product-title {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 18px;
-}
-
-.product-description {
-  margin-bottom: 10px;
-  color: #666;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.product-date {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #999;
-}
-
-.create-product-button {
-  margin-top: 30px;
-  text-align: center;
-}
-
-.create-button {
-  display: inline-block;
-  padding: 12px 24px;
-  background-color: #4caf50;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  font-weight: bold;
-  transition: background-color 0.3s;
-}
-
-.create-button:hover {
-  background-color: #388e3c;
-}
-</style>
+<!-- No need for scoped styles as we're using Tailwind CSS with shadcn-vue -->

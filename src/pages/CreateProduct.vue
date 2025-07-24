@@ -1,33 +1,47 @@
 <script setup>
-import { ref } from 'vue';
-import { uploadData, getUrl, remove, list } from 'aws-amplify/storage';
+import { ref, computed } from 'vue';
+import { uploadData, getUrl } from 'aws-amplify/storage';
 import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 import { createProduct } from '../graphql/mutations';
 import { useRouter } from 'vue-router';
 import api from '../utils/api-client';
+import { useForm } from 'vee-validate';
+import { toTypedSchema } from '@vee-validate/zod';
+import * as z from 'zod';
+import { toast } from 'vue-sonner';
+
+// UI Components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { ArrowLeft, Upload, Loader2 } from 'lucide-vue-next';
 
 const router = useRouter();
-const title = ref('');
-const description = ref('');
 const imageFile = ref(null);
 const imagePreview = ref('');
-const isSubmitting = ref(false);
 const errorMessage = ref('');
-const isAuthenticated = ref(false);
 
-// Check authentication status when component is mounted
-const checkAuth = async () => {
-  try {
-    const user = await getCurrentUser();
-    isAuthenticated.value = true;
-  } catch (error) {
-    isAuthenticated.value = false;
-    console.error('User is not authenticated');
-    errorMessage.value = 'Please log in to create products';
-  }
-};
+// Form validation schema
+const formSchema = toTypedSchema(
+  z.object({
+    title: z.string().min(3, { message: 'Title must be at least 3 characters' }).max(100, { message: 'Title must not exceed 100 characters' }),
+    description: z.string().min(10, { message: 'Description must be at least 10 characters' }).max(1000, { message: 'Description must not exceed 1000 characters' }),
+    image: z.any().optional(),
+  })
+);
 
-checkAuth();
+// Form setup
+const form = useForm({
+  validationSchema: formSchema,
+  initialValues: {
+    title: '',
+    description: ''
+  },
+});
+
+// Authentication is now handled by the router guard
 
 const handleImageChange = (e) => {
   const file = e.target.files[0];
@@ -37,28 +51,33 @@ const handleImageChange = (e) => {
   }
 };
 
-const handleSubmit = async () => {
-  if (!title.value || !description.value) {
-    errorMessage.value = 'Please fill in all required fields';
-    return;
+// Clear image preview
+const clearImage = () => {
+  imageFile.value = null;
+  imagePreview.value = '';
+  
+  // Clear the file input by recreating it
+  const fileInput = document.getElementById('product-image');
+  if (fileInput) {
+    fileInput.value = '';
   }
+};
 
+const onSubmit = async (values) => {
   try {
-    isSubmitting.value = true;
+    form.setFieldValue('isSubmitting', true);
     errorMessage.value = '';
     
-    // Check if user is authenticated
-    if (!isAuthenticated.value) {
-      errorMessage.value = 'You must be logged in to create a product';
-      isSubmitting.value = false;
-      return;
-    }
+    // Authentication is now handled by the router guard
     
     // Get the current session which includes the JWT token
     const { tokens } = await fetchAuthSession();
     if (!tokens) {
       errorMessage.value = 'Authentication session expired. Please log in again.';
-      isSubmitting.value = false;
+      toast.error('Session expired', {
+        description: 'Please log in again to continue',
+      });
+      form.setFieldValue('isSubmitting', false);
       return;
     }
     
@@ -89,8 +108,8 @@ const handleSubmit = async () => {
     
     // Create product in the database
     const productInput = {
-      title: title.value,
-      description: description.value,
+      title: values.title,
+      description: values.description,
       imageUrl: imageUrl || null,
       ownerId: userId // Add the required ownerId field
     };
@@ -102,6 +121,10 @@ const handleSubmit = async () => {
         variables: { input: productInput }
       });
       
+      toast.success('Product created successfully', {
+        description: 'Redirecting to products page...',
+      });
+      
       // Redirect to products page after successful creation
       router.push('/products');
     } catch (graphqlError) {
@@ -110,8 +133,13 @@ const handleSubmit = async () => {
       if (graphqlError.toString().includes('Cannot return null for non-nullable type') && 
           graphqlError.toString().includes('owner')) {
         console.warn('Product created but with owner field errors:', graphqlError);
-        // Redirect to home page since the product was actually created
-        router.push('/');
+        
+        toast.success('Product created successfully', {
+          description: 'Redirecting to products page...',
+        });
+        
+        // Redirect to products page since the product was actually created
+        router.push('/products');
       } else {
         // Re-throw if it's a different error
         throw graphqlError;
@@ -120,133 +148,160 @@ const handleSubmit = async () => {
   } catch (error) {
     console.error('Error creating product:', error);
     errorMessage.value = 'Failed to create product. Please try again.';
+    toast.error('Failed to create product', {
+      description: 'Please try again later',
+    });
   } finally {
-    isSubmitting.value = false;
+    form.setFieldValue('isSubmitting', false);
   }
 };
+
+const isSubmitting = computed(() => form.meta.value.isSubmitting);
 </script>
 
 <template>
-  <div class="create-product">
-    <h1>Create New Product</h1>
-    
-    <div v-if="errorMessage" class="error-message">
-      {{ errorMessage }}
-    </div>
-    
-    <form @submit.prevent="handleSubmit" class="product-form">
-      <div class="form-group">
-        <label for="title">Title *</label>
-        <input 
-          id="title" 
-          v-model="title" 
-          type="text" 
-          required 
-          placeholder="Enter product title"
-        />
-      </div>
-      
-      <div class="form-group">
-        <label for="description">Description *</label>
-        <textarea 
-          id="description" 
-          v-model="description" 
-          required 
-          placeholder="Enter product description"
-          rows="4"
-        ></textarea>
-      </div>
-      
-      <div class="form-group">
-        <label for="image">Product Image</label>
-        <input 
-          id="image" 
-          type="file" 
-          accept="image/*" 
-          @change="handleImageChange"
-        />
-        
-        <div v-if="imagePreview" class="image-preview">
-          <img :src="imagePreview" alt="Product preview" />
-        </div>
-      </div>
-      
-      <button 
-        type="submit" 
-        class="submit-button" 
-        :disabled="isSubmitting"
+  <div class="container mx-auto py-8 px-4">
+    <div class="max-w-2xl mx-auto">
+      <!-- Back button -->
+      <Button 
+        variant="ghost" 
+        class="mb-6 flex items-center gap-2" 
+        @click="router.push('/products')"
       >
-        {{ isSubmitting ? 'Creating...' : 'Create Product' }}
-      </button>
-    </form>
+        <ArrowLeft class="h-4 w-4" />
+        Back to Products
+      </Button>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Create New Product</CardTitle>
+          <CardDescription>Add a new product to your catalog</CardDescription>
+        </CardHeader>
+        
+        <CardContent>
+          <!-- Error message -->
+          <div 
+            v-if="errorMessage" 
+            class="bg-destructive/15 text-destructive p-4 rounded-md mb-6"
+          >
+            {{ errorMessage }}
+          </div>
+          
+          <!-- Product form -->
+          <Form 
+            :validation-schema="formSchema" 
+            @submit="onSubmit" 
+            class="space-y-6"
+          >
+            <!-- Title field -->
+            <FormField
+              v-slot="{ componentField, errors, value }"
+              name="title"
+            >
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl>
+                  <Input 
+                    v-bind="componentField" 
+                    placeholder="Enter product title" 
+                  />
+                </FormControl>
+                <FormDescription>
+                  Give your product a clear, descriptive title
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            
+            <!-- Description field -->
+            <FormField
+              v-slot="{ componentField, errors, value }"
+              name="description"
+            >
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    v-bind="componentField" 
+                    placeholder="Enter product description" 
+                    rows="5"
+                  />
+                </FormControl>
+                <FormDescription>
+                  Provide a detailed description of your product
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            
+            <!-- Image upload field -->
+            <FormField
+              name="image"
+              v-slot="{ componentField }"
+            >
+              <FormItem class="space-y-2">
+                <FormLabel for="product-image">Product Image</FormLabel>
+                
+                <div class="flex items-center gap-4">
+                  <label 
+                    for="product-image" 
+                    class="flex items-center justify-center gap-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md px-3 py-2 cursor-pointer"
+                  >
+                    <Upload class="h-4 w-4" />
+                    <span>Choose file</span>
+                  </label>
+                  
+                  <Input 
+                    id="product-image" 
+                    type="file" 
+                    accept="image/*" 
+                    @change="handleImageChange"
+                    class="hidden"
+                  />
+                  
+                  <Button 
+                    v-if="imagePreview" 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    @click="clearImage"
+                  >
+                    Remove
+                  </Button>
+                </div>
+                
+                <!-- Image preview -->
+                <div 
+                  v-if="imagePreview" 
+                  class="mt-4 border rounded-md overflow-hidden max-w-md"
+                >
+                  <img 
+                    :src="imagePreview" 
+                    alt="Product preview" 
+                    class="w-full h-auto max-h-64 object-contain"
+                  />
+                </div>
+                
+                <FormDescription>
+                  Optional. Upload an image of your product.
+                </FormDescription>
+              </FormItem>
+            </FormField>
+            
+            <!-- Submit button -->
+            <Button 
+              type="submit" 
+              class="w-full" 
+              :disabled="isSubmitting"
+            >
+              <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
+              {{ isSubmitting ? 'Creating...' : 'Create Product' }}
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   </div>
 </template>
 
-<style scoped>
-.create-product {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.error-message {
-  background-color: #ffebee;
-  color: #c62828;
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 20px;
-}
-
-.product-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-label {
-  font-weight: bold;
-}
-
-input, textarea {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 16px;
-}
-
-.image-preview {
-  margin-top: 10px;
-}
-
-.image-preview img {
-  max-width: 100%;
-  max-height: 200px;
-  border-radius: 4px;
-}
-
-.submit-button {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 12px;
-  border-radius: 4px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.submit-button:hover {
-  background-color: #388e3c;
-}
-
-.submit-button:disabled {
-  background-color: #9e9e9e;
-  cursor: not-allowed;
-}
-</style>
+<!-- No need for scoped styles as we're using Tailwind CSS with shadcn-vue -->

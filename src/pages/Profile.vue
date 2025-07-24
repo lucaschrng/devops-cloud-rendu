@@ -1,299 +1,324 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { Amplify } from 'aws-amplify';
-import { fetchUserAttributes, updateUserAttributes } from 'aws-amplify/auth';
+import { fetchUserAttributes, signOut, updateUserAttributes } from 'aws-amplify/auth';
 import awsconfig from '../amplifyconfiguration.json';
+import { useForm } from 'vee-validate';
+import { toTypedSchema } from '@vee-validate/zod';
+import * as z from 'zod';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { CalendarIcon, LogOutIcon } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { CalendarDate, parseDate, getLocalTimeZone, today, DateFormatter } from '@internationalized/date'
+import { toDate } from 'reka-ui/date'
+import { useQuery, useMutation } from '@tanstack/vue-query'
+import { toast } from 'vue-sonner'
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { useRouter } from 'vue-router';
+import { useQueryClient } from '@tanstack/vue-query';
 
 Amplify.configure(awsconfig);
 
-const userAttributes = ref({});
-const loading = ref(false);
-const saving = ref(false);
-const message = ref('');
-const error = ref('');
+const placeholder = ref();
+const queryClient = useQueryClient();
 
-// Form fields
-const formData = ref({
-  name: '',
-  family_name: '',
-  email: '',
-  phone_number: '',
-  birthdate: '',
-  gender: '',
-  picture: '',
-  profile: '',
-  preferred_username: '',
+// Define form schema with zod
+const formSchema = toTypedSchema(z.object({
+  email: z.email().optional(),
+  name: z.string().min(1, 'First name is required').max(50).optional(),
+  family_name: z.string().min(1, 'Last name is required').max(50).optional(),
+  birthdate: z.string().optional(),
+  gender: z.string().optional(),
+  picture: z.url().optional().or(z.string().length(0)),
+  profile: z.string().optional(),
+  preferred_username: z.string().optional(),
+}));
+
+// Initialize form with vee-validate
+const form = useForm({
+  validationSchema: formSchema,
+  initialValues: {
+    email: '',
+    name: '',
+    family_name: '',
+    birthdate: '',
+    gender: '',
+    picture: '',
+    profile: '',
+    preferred_username: '',
+  }
 });
 
-async function loadUserAttributes() {
-  loading.value = true;
-  message.value = '';
-  error.value = '';
-  
-  try {
-    const attributes = await fetchUserAttributes();
-    userAttributes.value = attributes;
-    console.log('User attributes:', attributes);
-    
-    // Populate form data with existing attributes
-    Object.keys(formData.value).forEach(key => {
-      if (attributes[key]) {
-        formData.value[key] = attributes[key];
+// Use Vue Query to fetch user attributes
+const { isLoading, error: queryError, data: userAttributes } = useQuery({
+  queryKey: ['userAttributes'],
+  queryFn: async () => {
+    try {
+      const attributes = await fetchUserAttributes();
+      
+      // Set form values when attributes are loaded
+      if (attributes) {
+        // Map given_name to name if it exists
+        if (attributes.given_name) {
+          attributes.name = attributes.given_name;
+        }
+        
+        form.setValues(attributes);
       }
-    });
-    
-    // Always populate email if available
-    if (attributes.email) {
-      formData.value.email = attributes.email;
+      
+      return attributes;
+    } catch (err) {
+      console.error('Error fetching user attributes:', err);
+      throw new Error('Failed to load user profile');
     }
-    
-  } catch (err) {
-    console.error('Error fetching user attributes:', err);
-    error.value = 'Failed to load user profile. Please try again later.';
-  } finally {
-    loading.value = false;
-  }
-}
+  },
+  refetchOnWindowFocus: false,
+});
 
-async function saveProfile() {
-  saving.value = true;
-  message.value = '';
-  error.value = '';
-  
+const df = new DateFormatter('en-US', {
+  dateStyle: 'long',
+})
+
+const birthdate = computed({
+  get: () => form.values.birthdate ? parseDate(form.values.birthdate) : undefined,
+  set: val => val,
+})
+
+// Use Vue Query to update user attributes
+const updateAttributesMutation = useMutation({
+  mutationFn: async (updatedAttributes) => {
+    return await updateUserAttributes({
+      userAttributes: updatedAttributes
+    });
+  },
+  onSuccess: () => {
+    toast.success('Profile updated successfully!');
+  },
+  onError: (error) => {
+    toast.error(`Failed to update profile: ${error.message || 'Please try again later'}`);
+  }
+});
+
+const onSubmit = form.handleSubmit(async (values) => {
   try {
-    // Filter out empty values
+    // Map form values back to Cognito attribute names
     const updatedAttributes = {};
-    Object.keys(formData.value).forEach(key => {
-      if (formData.value[key] && formData.value[key].trim() !== '') {
-        updatedAttributes[key] = formData.value[key];
-      }
+    Object.keys(values).forEach(key => {
+      if (values[key] && String(values[key]).trim() !== '') {
+        updatedAttributes[key] = values[key];
+    }
     });
     
     // Don't update email as it requires verification
     delete updatedAttributes.email;
     
     if (Object.keys(updatedAttributes).length === 0) {
-      message.value = 'No changes to save';
-      saving.value = false;
+      toast.info('No changes to save');
       return;
     }
     
-    await updateUserAttributes({
-      userAttributes: updatedAttributes
-    });
-    
-    message.value = 'Profile updated successfully!';
-    await loadUserAttributes(); // Reload attributes to confirm changes
+    // Execute the mutation
+    await updateAttributesMutation.mutateAsync(updatedAttributes);
   } catch (err) {
-    console.error('Error updating user attributes:', err);
-    error.value = err.message || 'Failed to update profile. Please try again later.';
-  } finally {
-    saving.value = false;
+    console.error('Error in form submission:', err);
   }
-}
+});
 
-// Load user attributes when component mounts
-onMounted(loadUserAttributes);
+const router = useRouter();
+const handleSignOut = async () => {
+  try {
+    await signOut();
+    queryClient.invalidateQueries({ queryKey: ['auth'] });
+    queryClient.clear();
+    router.push('/login');
+  } catch (error) {
+    console.error('Error signing out:', error);
+  }
+};
 </script>
 
 <template>
-  <div class="profile-container">
-    <h1>Your Profile</h1>
+  <div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6">Your Profile</h1>
     
-    <div v-if="loading" class="loading">
-      Loading your profile...
+    <div v-if="isLoading" class="flex items-center justify-center p-8">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <span class="ml-3 text-muted-foreground">Loading your profile...</span>
     </div>
     
-    <div v-else-if="error" class="error-message">
-      {{ error }}
+    <div v-else-if="queryError" class="p-4 mb-6 border border-destructive/50 text-destructive rounded-md bg-destructive/10">
+      <p class="font-medium">{{ queryError.message }}</p>
     </div>
     
-    <form v-else @submit.prevent="saveProfile" class="profile-form">
-      <div v-if="message" class="success-message">
-        {{ message }}
+    <form v-else @submit="onSubmit" class="space-y-6 bg-card p-6 rounded-lg shadow-sm">
+      <div v-if="updateAttributesMutation.isLoading" class="p-4 mb-6 border border-blue-500/50 text-blue-700 rounded-md bg-blue-50">
+        <p class="font-medium">Saving your profile...</p>
       </div>
       
-      <div class="form-group">
-        <label for="email">Email (cannot be changed)</label>
-        <input 
-          id="email" 
-          v-model="formData.email" 
-          type="email" 
-          disabled
-        />
+      <FormField v-slot="{ componentField }" name="email">
+        <FormItem>
+          <FormLabel>Email (cannot be changed)</FormLabel>
+          <FormControl>
+            <Input 
+              v-bind="componentField" 
+              type="email" 
+              disabled
+            />
+          </FormControl>
+        </FormItem>
+      </FormField>
+      
+      <FormField v-slot="{ componentField }" name="name">
+        <FormItem>
+          <FormLabel>First Name</FormLabel>
+          <FormControl>
+            <Input 
+              v-bind="componentField" 
+              type="text" 
+              placeholder="Enter your first name"
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      
+      <FormField v-slot="{ componentField }" name="family_name">
+        <FormItem>
+          <FormLabel>Last Name</FormLabel>
+          <FormControl>
+            <Input 
+              v-bind="componentField" 
+              type="text" 
+              placeholder="Enter your last name"
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      
+      <FormField name="birthdate">
+        <FormItem>
+          <FormLabel>Birthdate</FormLabel>
+          <Popover>
+            <PopoverTrigger as-child>
+              <FormControl>
+                <Button
+                  variant="outline" :class="cn(
+                    'w-[240px] ps-3 text-start font-normal',
+                    !birthdate && 'text-muted-foreground',
+                  )"
+                >
+                  <span>{{ birthdate ? df.format(toDate(birthdate)) : "Pick a date" }}</span>
+                  <CalendarIcon class="ms-auto h-4 w-4 opacity-50" />
+                </Button>
+              </FormControl>
+            </PopoverTrigger>
+            <PopoverContent class="w-auto p-0">
+              <Calendar
+                v-model:placeholder="placeholder"
+                :model-value="birthdate"
+                calendar-label="Date of birth"
+                initial-focus
+                :min-value="new CalendarDate(1900, 1, 1)"
+                :max-value="today(getLocalTimeZone())"
+                @update:model-value="(v) => {
+                  if (v) {
+                    form.setFieldValue('birthdate', v.toString())
+                  }
+                  else {
+                    form.setFieldValue('birthdate', undefined)
+                  }
+                }"
+              />
+            </PopoverContent>
+          </Popover>
+          <input hidden>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormField v-slot="{ componentField }" name="preferred_username">
+          <FormItem>
+            <FormLabel>Username</FormLabel>
+            <FormControl>
+              <Input 
+                v-bind="componentField" 
+                type="text" 
+                placeholder="Enter your username"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+        
+        <FormField v-slot="{ componentField }" name="gender">
+          <FormItem>
+            <FormLabel>Gender</FormLabel>
+            <Select v-bind="componentField">
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        </FormField>
       </div>
       
-      <div class="form-group">
-        <label for="name">First Name</label>
-        <input 
-          id="name" 
-          v-model="formData.name" 
-          type="text" 
-          placeholder="Enter your first name"
-        />
-      </div>
+      <FormField v-slot="{ componentField }" name="picture">
+        <FormItem>
+          <FormLabel>Profile Picture URL</FormLabel>
+          <FormControl>
+            <Input 
+              v-bind="componentField" 
+              type="url" 
+              placeholder="Enter URL to your profile picture"
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
       
-      <div class="form-group">
-        <label for="family_name">Last Name</label>
-        <input 
-          id="family_name" 
-          v-model="formData.family_name" 
-          type="text" 
-          placeholder="Enter your last name"
-        />
-      </div>
-      
-      <div class="form-group">
-        <label for="birthdate">Birthdate</label>
-        <input 
-          id="birthdate" 
-          v-model="formData.birthdate" 
-          type="date" 
-        />
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="gender">Gender</label>
-          <select id="gender" v-model="formData.gender">
-            <option value="">Select gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <label for="picture">Profile Picture URL</label>
-        <input 
-          id="picture" 
-          v-model="formData.picture" 
-          type="url" 
-          placeholder="Enter URL to your profile picture"
-        />
-      </div>
-      
-      <div class="form-actions">
-        <button 
+      <div class="flex justify-end space-x-4 mt-6">
+        <Button 
           type="submit" 
-          :disabled="saving" 
-          class="save-button"
+          :disabled="saving"
+          class="min-w-[120px]"
         >
           {{ saving ? 'Saving...' : 'Save Profile' }}
-        </button>
+        </Button>
       </div>
     </form>
     
-    <div class="back-link">
-      <router-link to="/">Back to Home</router-link>
+    <div class="mt-6 text-center">
+      <Button variant="destructive" @click="handleSignOut">
+        <LogOutIcon class="h-4 w-4" />
+        Logout
+      </Button>
     </div>
   </div>
 </template>
-
-<style scoped>
-.profile-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.loading, .error-message, .success-message {
-  padding: 10px;
-  margin-bottom: 20px;
-  border-radius: 4px;
-}
-
-.loading {
-  background-color: #f0f0f0;
-}
-
-.error-message {
-  background-color: #ffebee;
-  color: #c62828;
-}
-
-.success-message {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  padding: 10px;
-  margin-bottom: 20px;
-  border-radius: 4px;
-}
-
-.profile-form {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-row {
-  display: flex;
-  gap: 20px;
-}
-
-.form-row .form-group {
-  flex: 1;
-}
-
-label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-}
-
-input, select, textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-}
-
-textarea {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.form-actions {
-  margin-top: 30px;
-}
-
-.save-button {
-  background-color: #2196f3;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 4px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.save-button:hover {
-  background-color: #1976d2;
-}
-
-.save-button:disabled {
-  background-color: #90caf9;
-  cursor: not-allowed;
-}
-
-.back-link {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.back-link a {
-  color: #2196f3;
-  text-decoration: none;
-}
-
-.back-link a:hover {
-  text-decoration: underline;
-}
-</style>

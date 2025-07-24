@@ -1,15 +1,25 @@
+<script setup lang="ts">
+import { Toaster } from '@/components/ui/sonner';
+import 'vue-sonner/style.css'; // vue-sonner v2 requires this import
+import Navbar from '@/components/layout/Navbar.vue';
+import { useRoute } from 'vue-router';
+import { computed } from 'vue';
+
+const route = useRoute();
+
+// Hide navbar on login and signup pages
+const showNavbar = computed(() => {
+  return !['Login', 'Signup'].includes(route.name?.toString() || '');
+});
+</script>
+
 <template>
-  <div>
-    <header>
-      <nav>
-        <router-link to="/">Home</router-link> |
-        <router-link to="/products">Products</router-link> |
-        <router-link to="/create-product">Create Product</router-link> |
-        <router-link to="/auth">Auth</router-link>
-      </nav>
-    </header>
-    
-    <router-view />
+  <div class="min-h-screen bg-background">
+    <Navbar v-if="showNavbar" />
+    <main :class="{ 'py-6': showNavbar }">
+      <router-view />
+    </main>
+    <Toaster class="pointer-events-auto" />
   </div>
 </template>
 
