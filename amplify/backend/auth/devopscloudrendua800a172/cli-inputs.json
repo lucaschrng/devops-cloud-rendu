@@ -1,8 +1,6 @@
 {
   "version": "1",
   "cognitoConfig": {
-    "identityPoolName": "devopscloudrendua800a172_identitypool_a800a172",
-    "allowUnauthenticatedIdentities": true,
     "resourceNameTruncated": "devopsa800a172",
     "userPoolName": "devopscloudrendua800a172_userpool_a800a172",
     "autoVerifiedAttributes": [
@@ -26,17 +24,39 @@
     "userpoolClientGenerateSecret": false,
     "userpoolClientRefreshTokenValidity": 30,
     "userpoolClientWriteAttributes": [
+      "address",
+      "birthdate",
+      "family_name",
+      "middle_name",
+      "gender",
+      "locale",
+      "given_name",
+      "name",
+      "nickname",
+      "phone_number",
+      "preferred_username",
+      "picture",
+      "profile",
+      "updated_at",
       "email"
     ],
     "userpoolClientReadAttributes": [
-      "email"
+      "birthdate",
+      "email",
+      "family_name",
+      "gender",
+      "locale",
+      "name",
+      "preferred_username",
+      "picture",
+      "profile"
     ],
     "userpoolClientLambdaRole": "devopsa800a172_userpoolclient_lambda_role",
-    "userpoolClientSetAttributes": false,
+    "userpoolClientSetAttributes": true,
     "sharedId": "a800a172",
     "resourceName": "devopscloudrendua800a172",
-    "authSelections": "identityPoolAndUserPool",
-    "useDefault": "default",
+    "authSelections": "userPoolOnly",
+    "useDefault": "manual",
     "usernameAttributes": [
       "email"
     ],
@@ -57,6 +77,15 @@
       ]
     },
     "breakCircularDependency": true,
-    "dependsOn": []
+    "dependsOn": [],
+    "userPoolGroups": false,
+    "adminQueries": false,
+    "triggers": {},
+    "hostedUI": false,
+    "parentStack": {
+      "Ref": "AWS::StackId"
+    },
+    "permissions": [],
+    "authProviders": []
   }
 }
