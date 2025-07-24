@@ -3,6 +3,11 @@ import { ref, onMounted } from 'vue';
 import { getProduct } from '../graphql/queries';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../utils/api-client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Calendar, Clock } from 'lucide-vue-next';
 
 const router = useRouter();
 const route = useRoute();
@@ -55,195 +60,100 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="product-detail">
-    <div class="back-button">
-      <button @click="goBack">← Back to Products</button>
-    </div>
+  <div class="container mx-auto py-8 px-4">
+    <!-- Back button -->
+    <Button 
+      variant="ghost" 
+      class="mb-6 flex items-center gap-2" 
+      @click="goBack"
+    >
+      <ArrowLeft class="h-4 w-4" />
+      Back to Products
+    </Button>
     
-    <div v-if="error" class="error-message">
-      {{ error }}
-      <div class="error-actions">
-        <button @click="goBack">Return to Products</button>
-      </div>
-    </div>
+    <!-- Error state -->
+    <Card v-if="error" class="mb-6 border-destructive">
+      <CardHeader>
+        <CardTitle class="text-destructive">Error</CardTitle>
+        <CardDescription>{{ error }}</CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <Button @click="goBack">Return to Products</Button>
+      </CardFooter>
+    </Card>
     
-    <div v-else-if="loading" class="loading">
-      Loading product details...
-    </div>
-    
-    <div v-else-if="product" class="product-container">
-      <div class="product-header">
-        <h1>{{ product.title }}</h1>
-        <p class="product-date">Created: {{ new Date(product.createdAt).toLocaleDateString() }}</p>
+    <!-- Loading state -->
+    <div v-else-if="loading" class="space-y-6">
+      <div class="flex items-center space-x-4">
+        <Skeleton class="h-12 w-[250px]" />
       </div>
       
-      <div class="product-content">
-        <div class="product-image-container">
-          <img 
-            v-if="product.imageUrl" 
-            :src="product.imageUrl" 
-            :alt="product.title" 
-            class="product-image"
-          />
-          <div v-else class="product-image-placeholder">
-            No image available
-          </div>
-        </div>
-        
-        <div class="product-info">
-          <div class="product-description">
-            <h2>Description</h2>
-            <p>{{ product.description }}</p>
-          </div>
-          
-          <div class="product-metadata">
-            <p><strong>Product ID:</strong> {{ product.id }}</p>
-            <p><strong>Last Updated:</strong> {{ new Date(product.updatedAt).toLocaleString() }}</p>
-          </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Skeleton class="h-[300px] w-full rounded-lg" />
+        <div class="space-y-4">
+          <Skeleton class="h-8 w-3/4" />
+          <Skeleton class="h-32 w-full" />
+          <Skeleton class="h-4 w-1/2" />
+          <Skeleton class="h-4 w-2/3" />
         </div>
       </div>
+    </div>
+    
+    <!-- Product details -->
+    <div v-else-if="product">
+      <Card>
+        <CardHeader>
+          <div class="flex justify-between items-start">
+            <div>
+              <CardTitle class="text-2xl">{{ product.title }}</CardTitle>
+              <CardDescription class="flex items-center gap-1 mt-1">
+                <Calendar class="h-3.5 w-3.5" />
+                Created: {{ new Date(product.createdAt).toLocaleDateString() }}
+              </CardDescription>
+            </div>
+            <Badge variant="outline">
+              ID: {{ product.id.substring(0, 8) }}...
+            </Badge>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Product image -->
+            <div class="overflow-hidden rounded-md border bg-muted">
+              <img 
+                v-if="product.imageUrl" 
+                :src="product.imageUrl" 
+                :alt="product.title" 
+                class="h-full w-full object-cover aspect-video"
+              />
+              <div 
+                v-else 
+                class="flex items-center justify-center h-full w-full aspect-video text-muted-foreground"
+              >
+                No image available
+              </div>
+            </div>
+            
+            <!-- Product description -->
+            <div class="space-y-4">
+              <div>
+                <h3 class="text-lg font-medium mb-2">Description</h3>
+                <p class="text-muted-foreground whitespace-pre-line">{{ product.description }}</p>
+              </div>
+              
+              <div class="pt-4 border-t">
+                <p class="text-sm text-muted-foreground flex items-center gap-1">
+                  <Clock class="h-3.5 w-3.5" />
+                  Last updated: {{ new Date(product.updatedAt).toLocaleString() }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   </div>
 </template>
 
-<style scoped>
-.product-detail {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.back-button {
-  margin-bottom: 20px;
-}
-
-.back-button button {
-  background: none;
-  border: none;
-  color: #1976d2;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 8px 0;
-  font-size: 16px;
-}
-
-.back-button button:hover {
-  text-decoration: underline;
-}
-
-.error-message {
-  background-color: #ffebee;
-  color: #c62828;
-  padding: 20px;
-  border-radius: 4px;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.error-actions {
-  margin-top: 15px;
-}
-
-.error-actions button {
-  background-color: #1976d2;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  font-size: 18px;
-  color: #666;
-}
-
-.product-container {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.product-header {
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.product-header h1 {
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-.product-date {
-  color: #666;
-  margin: 0;
-}
-
-.product-content {
-  display: flex;
-  flex-direction: column;
-  
-  @media (min-width: 768px) {
-    flex-direction: row;
-  }
-}
-
-.product-image-container {
-  width: 100%;
-  
-  @media (min-width: 768px) {
-    width: 40%;
-  }
-}
-
-.product-image {
-  width: 100%;
-  height: auto;
-  max-height: 400px;
-  object-fit: cover;
-}
-
-.product-image-placeholder {
-  width: 100%;
-  height: 300px;
-  background-color: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #757575;
-}
-
-.product-info {
-  padding: 20px;
-  
-  @media (min-width: 768px) {
-    width: 60%;
-  }
-}
-
-.product-description h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
-}
-
-.product-description p {
-  line-height: 1.6;
-  margin-top: 0;
-}
-
-.product-metadata {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
-  font-size: 14px;
-  color: #666;
-}
-
-.product-metadata p {
-  margin: 5px 0;
-}
-</style>
+<!-- No need for scoped styles as we're using Tailwind CSS with shadcn-vue -->
