@@ -18,9 +18,9 @@ const loading = ref(false);
 const error = ref('');
 const showConfirmation = ref(false);
 const confirmationCode = ref('');
+const queryClient = useQueryClient()
 
 const handleSignup = async () => {
-  const queryClient = useQueryClient()
   if (!username.value || !password.value || !email.value) {
     error.value = 'Please fill in all required fields';
     return;
