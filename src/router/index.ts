@@ -3,6 +3,7 @@ import Auth from '../pages/Auth.vue'
 import CreateProduct from '../pages/CreateProduct.vue'
 import ProductList from '../pages/ProductList.vue'
 import ProductDetail from '../pages/ProductDetail.vue'
+import Profile from '../pages/Profile.vue'
 
 // Define routes
 const routes = [
@@ -31,6 +32,12 @@ const routes = [
     path: '/product/:id',
     name: 'ProductDetail',
     component: ProductDetail
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: Profile,
+    meta: { requiresAuth: true }
   }
 ]
 
