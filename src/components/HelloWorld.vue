@@ -1,37 +1,74 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue';
+import { getUserCount, getProductCount } from '../graphql/queries';
+import { useRouter } from 'vue-router';
+import api from '../utils/api-client';
+import Card from './ui/card/Card.vue';
 
-defineProps<{ msg: string }>()
+const router = useRouter();
 
-const count = ref(0)
+const userCount = ref(0);
+const productCount = ref(0);
+const loading = ref(true);
+const error = ref('');
+
+const fetchUsers = async () => {
+  try {
+    loading.value = true;
+    error.value = '';
+    
+    const response = await api.graphql({
+      query: getUserCount,
+    });
+
+    userCount.value = response.data.users.totalCount;
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    error.value = 'Failed to load users. Please try again later.';
+  } finally {
+    loading.value = false;
+  }
+};
+
+
+const fetchProductCount = async () => {
+  try {
+    loading.value = true;
+    error.value = '';
+    
+    const response = await api.graphql({
+      query: getProductCount,
+    });
+
+    productCount.value = response.data.products.totalCount;
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    error.value = 'Failed to load products. Please try again later.';
+  } finally {
+    loading.value = false;
+  }
+};
+
+
+onMounted(() => {
+  fetchUsers();
+  fetchProductCount();
+});
+
 </script>
 
 <template>
-  <h1>{{ msg }}</h1>
-
-  <div class="card">
-    <button type="button" @click="count++">count is {{ count }}</button>
-    <p>
-      Edit
-      <code>components/HelloWorld.vue</code> to test HMR
-    </p>
-  </div>
-
-  <p>
-    Check out
-    <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank"
-      >create-vue</a
-    >, the official Vue + Vite starter
-  </p>
-  <p>
-    Learn more about IDE Support for Vue in the
-    <a
-      href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support"
-      target="_blank"
-      >Vue Docs Scaling up Guide</a
-    >.
-  </p>
-  <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
+<div class="m-auto p-4">
+  <Card class="flex flex-col p-4">
+    <p class="font-bold">User Count</p>
+    <p>Total Users: {{ userCount }}</p>
+  </Card>
+  <Card class="flex flex-col p-4 mt-4">
+    <p class="font-bold">Product Count</p>
+    <p>Total Products: {{ productCount }}</p>
+  </Card>
+  <div v-if="loading" class="text-center mt-4">Loading...</div>
+</div>
 </template>
 
 <style scoped>

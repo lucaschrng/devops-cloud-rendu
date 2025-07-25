@@ -65,6 +65,38 @@
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
+    },
+    "getProductCount": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput",
+            "GraphQLAPIEndpointOutput",
+            "GraphQLAPIKeyOutput"
+          ],
+          "category": "api",
+          "resourceName": "devopscloudrendu"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "getUserCount": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput",
+            "GraphQLAPIEndpointOutput",
+            "GraphQLAPIKeyOutput"
+          ],
+          "category": "api",
+          "resourceName": "devopscloudrendu"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
     }
   },
   "parameters": {
@@ -81,6 +113,38 @@
         {
           "category": "function",
           "resourceName": "S3Triggere7efcf2e"
+        }
+      ]
+    },
+    "AMPLIFY_function_getProductCount_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "getProductCount"
+        }
+      ]
+    },
+    "AMPLIFY_function_getProductCount_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "getProductCount"
+        }
+      ]
+    },
+    "AMPLIFY_function_getUserCount_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "getUserCount"
+        }
+      ]
+    },
+    "AMPLIFY_function_getUserCount_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "getUserCount"
         }
       ]
     }
