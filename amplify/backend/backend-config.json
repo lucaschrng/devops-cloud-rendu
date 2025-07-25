@@ -156,14 +156,6 @@
         }
       ]
     },
-    "AMPLIFY_function_devopscloudrendua800a172PostConfirmation_GROUP": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "devopscloudrendua800a172PostConfirmation"
-        }
-      ]
-    },
     "AMPLIFY_function_devopscloudrendua800a172PostConfirmation_deploymentBucketName": {
       "usedBy": [
         {

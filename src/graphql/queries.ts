@@ -8,20 +8,6 @@ type GeneratedQuery<InputType, OutputType> = string & {
   __generatedQueryOutput: OutputType;
 };
 
-export const getUserCount = /* GraphQL */ `query GetUserCount {
-  getUserCount
-}
-` as GeneratedQuery<
-  APITypes.GetUserCountQueryVariables,
-  APITypes.GetUserCountQuery
->;
-export const getProductCount = /* GraphQL */ `query GetProductCount {
-  getProductCount
-}
-` as GeneratedQuery<
-  APITypes.GetProductCountQueryVariables,
-  APITypes.GetProductCountQuery
->;
 export const getUser = /* GraphQL */ `query GetUser($id: ID!) {
   getUser(id: $id) {
     id
@@ -277,4 +263,18 @@ export const commentsByAuthorId = /* GraphQL */ `query CommentsByAuthorId(
 ` as GeneratedQuery<
   APITypes.CommentsByAuthorIdQueryVariables,
   APITypes.CommentsByAuthorIdQuery
+>;
+export const getUserCount = /* GraphQL */ `query GetUserCount {
+  getUserCount
+}
+` as GeneratedQuery<
+  APITypes.GetUserCountQueryVariables,
+  APITypes.GetUserCountQuery
+>;
+export const getProductCount = /* GraphQL */ `query GetProductCount {
+  getProductCount
+}
+` as GeneratedQuery<
+  APITypes.GetProductCountQueryVariables,
+  APITypes.GetProductCountQuery
 >;

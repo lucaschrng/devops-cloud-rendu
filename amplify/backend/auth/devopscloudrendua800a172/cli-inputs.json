@@ -22,6 +22,14 @@
     "requiredAttributes": [
       "email"
     ],
+    "customAttributes": [
+      {
+        "attributeDataType": "String",
+        "name": "role",
+        "required": false,
+        "mutable": true
+      }
+    ],
     "aliasAttributes": [],
     "userpoolClientGenerateSecret": false,
     "userpoolClientRefreshTokenValidity": 30,
@@ -40,7 +48,8 @@
       "picture",
       "profile",
       "updated_at",
-      "email"
+      "email",
+      "custom:role"
     ],
     "userpoolClientReadAttributes": [
       "birthdate",
@@ -51,7 +60,8 @@
       "name",
       "preferred_username",
       "picture",
-      "profile"
+      "profile",
+      "custom:role"
     ],
     "userpoolClientLambdaRole": "devopsa800a172_userpoolclient_lambda_role",
     "userpoolClientSetAttributes": false,
