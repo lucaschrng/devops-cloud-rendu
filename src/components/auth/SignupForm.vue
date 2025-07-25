@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'vue-sonner';
 import { useQueryClient } from '@tanstack/vue-query';
+import { ensureUserExists } from '../../utils/auth-utils';
 
 const router = useRouter();
 const username = ref('');

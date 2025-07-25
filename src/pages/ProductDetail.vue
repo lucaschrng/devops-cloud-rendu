@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { getProduct } from '../graphql/queries';
+import { getProductSafe } from '../graphql/custom-queries';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../utils/api-client';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Clock } from 'lucide-vue-next';
+import ProductComments from '../components/ProductComments.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -27,8 +29,9 @@ const fetchProductDetails = async () => {
       throw new Error('Product ID is missing');
     }
     
+    // Use the safe query that doesn't include owner to avoid GraphQL errors
     const response = await api.graphql({
-      query: getProduct,
+      query: getProductSafe,
       variables: { id: productId }
     });
     
@@ -152,6 +155,11 @@ onMounted(() => {
           </div>
         </CardContent>
       </Card>
+
+      <!-- Comments Section -->
+      <div class="mt-8">
+        <ProductComments :product-id="product.id" />
+      </div>
     </div>
   </div>
 </template>
