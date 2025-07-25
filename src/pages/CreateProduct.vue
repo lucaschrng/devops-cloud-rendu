@@ -83,26 +83,36 @@ const onSubmit = async (values) => {
     
     // Get current user to get their ID for the ownerId field
     const user = await getCurrentUser();
+    console.log('Current user:', user);
     const userId = user.userId;
     
     let imageUrl = '';
+    console.log(imageFile.value, 'Image file selected:', imageFile.value);
     
     // Upload image if one was selected
     if (imageFile.value) {
+      console.log('Uploading image:', imageFile.value);
       const fileName = `products/${Date.now()}-${imageFile.value.name}`;
       
-      await uploadData({
+      uploadData({
         key: fileName,
         data: imageFile.value,
         options: {
           contentType: imageFile.value.type
         }
       });
+
+      console.log('Image uploaded successfully:', fileName);
       
-      // Get the public URL for the uploaded image
       const result = await getUrl({
-        key: fileName
+        path: fileName,
+        options: {
+          validateObjectExistence: true, // Optional: validates file exists
+          expiresIn: 3600 // Optional: URL expiration in seconds (1 hour)
+        }
       });
+      console.log('Image URL generated:', result);
+      console.log('Image public URL:', result.url);
       imageUrl = result.url.toString();
     }
     
@@ -113,6 +123,8 @@ const onSubmit = async (values) => {
       imageUrl: imageUrl || null,
       ownerId: userId // Add the required ownerId field
     };
+
+    console.log('Creating product with input:', productInput);
     
     try {
       // Use our centralized API client that automatically handles authentication
