@@ -12,7 +12,7 @@ const baseClient = generateClient();
 interface GraphQLOptions {
   query: string;
   variables?: Record<string, any>;
-  authMode?: 'AMAZON_COGNITO_USER_POOLS' | 'API_KEY' | 'AWS_IAM' | 'OPENID_CONNECT';
+  authMode?: 'userPool' | 'apiKey' | 'iam' | 'oidc';
   authToken?: string;
 }
 
@@ -33,11 +33,13 @@ export const api = {
       
       // If we have a valid token, add it to the request
       if (tokens?.idToken) {
-        return baseClient.graphql({
-          ...options,
-          authMode: 'AMAZON_COGNITO_USER_POOLS',
+        return await baseClient.graphql({
+          query: options.query,
+          // @ts-ignore
+          variables: options.variables,
+          authMode: 'userPool',
           authToken: tokens.idToken.toString()
-        }) as Promise<GraphQLResult<T>>;
+        }) as GraphQLResult<T>;
       }
     } catch (error) {
       console.log('Not authenticated or error fetching session:', error);
@@ -45,7 +47,12 @@ export const api = {
     }
     
     // Fall back to default client behavior if not authenticated
-    return baseClient.graphql(options) as Promise<GraphQLResult<T>>;
+    return await baseClient.graphql({
+      query: options.query,
+      // @ts-ignore
+      variables: options.variables,
+      authMode: options.authMode
+    }) as GraphQLResult<T>;
   }
 };
 
