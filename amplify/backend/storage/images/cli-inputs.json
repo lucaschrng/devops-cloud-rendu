@@ -1,0 +1,13 @@
+{
+  "resourceName": "images",
+  "policyUUID": "ae4ad551",
+  "bucketName": "devopscloudrendub01039a8cd034f02abc9e7801bafdc8",
+  "storageAccess": "auth",
+  "guestAccess": [],
+  "authAccess": [
+    "CREATE_AND_UPDATE",
+    "READ",
+    "DELETE"
+  ],
+  "triggerFunction": "S3Triggere7efcf2e"
+}
