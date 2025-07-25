@@ -66,6 +66,22 @@
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
+    "getProductCount": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput",
+            "GraphQLAPIEndpointOutput",
+            "GraphQLAPIKeyOutput"
+          ],
+          "category": "api",
+          "resourceName": "devopscloudrendu"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
     "getUserCount": {
       "build": true,
       "dependsOn": [
@@ -97,6 +113,22 @@
         {
           "category": "function",
           "resourceName": "S3Triggere7efcf2e"
+        }
+      ]
+    },
+    "AMPLIFY_function_getProductCount_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "getProductCount"
+        }
+      ]
+    },
+    "AMPLIFY_function_getProductCount_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "getProductCount"
         }
       ]
     },

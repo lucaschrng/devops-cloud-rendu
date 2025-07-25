@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "api": {
+      "devopscloudrendu": [
+        "Query"
+      ]
+    },
+    "storage": {
+      "Product:@model(appsync)": [
+        "read"
+      ]
+    }
+  },
+  "lambdaLayers": []
+}
