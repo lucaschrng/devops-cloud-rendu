@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { uploadData, getUrl } from 'aws-amplify/storage';
 import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 import { createProduct } from '../graphql/mutations';
@@ -11,6 +11,7 @@ import { useForm } from 'vee-validate';
 import { toTypedSchema } from '@vee-validate/zod';
 import * as z from 'zod';
 import { toast } from 'vue-sonner';
+import { canCreateProducts, getCurrentUserInfo } from '../utils/auth-utils';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,8 @@ const router = useRouter();
 const imageFile = ref(null);
 const imagePreview = ref('');
 const errorMessage = ref('');
+const canCreate = ref(false);
+const isCheckingPermissions = ref(true);
 
 // Form validation schema
 const formSchema = toTypedSchema(
@@ -44,6 +47,32 @@ const form = useForm({
 });
 
 // Authentication is now handled by the router guard
+
+// Check user permissions
+const checkPermissions = async () => {
+  try {
+    isCheckingPermissions.value = true;
+    canCreate.value = await canCreateProducts();
+    
+    if (!canCreate.value) {
+      toast.error('Access denied', {
+        description: 'Only administrators can create products',
+      });
+      // Redirect to products page if not admin
+      router.push('/products');
+    }
+  } catch (error) {
+    console.error('Error checking permissions:', error);
+    canCreate.value = false;
+    router.push('/products');
+  } finally {
+    isCheckingPermissions.value = false;
+  }
+};
+
+onMounted(() => {
+  checkPermissions();
+});
 
 const handleImageChange = (e) => {
   const file = e.target.files[0];
@@ -66,6 +95,13 @@ const clearImage = () => {
 };
 
 const onSubmit = async (values) => {
+  if (!canCreate.value) {
+    toast.error('Access denied', {
+      description: 'Only administrators can create products',
+    });
+    return;
+  }
+
   try {
     form.setFieldValue('isSubmitting', true);
     errorMessage.value = '';
@@ -85,8 +121,8 @@ const onSubmit = async (values) => {
     const cognitoUser = await getCurrentUser();
     console.log('Current Cognito user:', cognitoUser);
     
-    // Try to get user from DynamoDB, but don't fail if it doesn't exist
-    let userId = cognitoUser.userId; // Default to Cognito user ID
+    // Try to get user from DynamoDB, create if doesn't exist
+    let userId = cognitoUser.userId;
     try {
       const userResponse = await api.graphql({
         query: getUser,
@@ -96,14 +132,41 @@ const onSubmit = async (values) => {
       if (userResponse.data.getUser) {
         userId = userResponse.data.getUser.id;
         console.log('Found existing user:', userResponse.data.getUser);
+      } else {
+        throw new Error('User not found');
       }
     } catch (userError) {
-      console.log('User not found in DynamoDB, using Cognito user ID directly');
-      // We'll use the Cognito user ID directly for now
-      // The user creation should happen through a different mechanism (like a Lambda trigger)
-      toast.info('User profile setup needed', {
-        description: 'Some features may be limited until profile is complete',
-      });
+      console.log('User not found in DynamoDB, creating user record...');
+      
+      try {
+        // Create user record in DynamoDB
+        const userInput = {
+          id: cognitoUser.userId,
+          username: cognitoUser.username,
+          email: cognitoUser.signInDetails?.loginId || 'unknown@example.com',
+          firstName: '',
+          lastName: ''
+        };
+        
+        const createUserResponse = await api.graphql({
+          query: createUser,
+          variables: { input: userInput }
+        });
+        
+        console.log('Created new user:', createUserResponse.data.createUser);
+        userId = createUserResponse.data.createUser.id;
+        
+        toast.success('User profile created', {
+          description: 'Your profile has been set up successfully',
+        });
+      } catch (createError) {
+        console.error('Failed to create user:', createError);
+        toast.warning('User creation failed', {
+          description: 'Proceeding with Cognito user ID',
+        });
+        // Continue with Cognito user ID
+        userId = cognitoUser.userId;
+      }
     }
     
     let imageUrl = '';
@@ -230,21 +293,40 @@ const isSubmitting = computed(() => form.meta.value.isSubmitting);
 <template>
   <div class="container mx-auto py-8 px-4">
     <div class="max-w-2xl mx-auto">
-      <!-- Back button -->
-      <Button 
-        variant="ghost" 
-        class="mb-6 flex items-center gap-2" 
-        @click="router.push('/products')"
-      >
-        <ArrowLeft class="h-4 w-4" />
-        Back to Products
-      </Button>
-      
-      <Card>
+      <!-- Loading permissions state -->
+      <div v-if="isCheckingPermissions" class="flex items-center justify-center py-12">
+        <Loader2 class="h-8 w-8 animate-spin" />
+        <span class="ml-2">Checking permissions...</span>
+      </div>
+
+      <!-- Access denied message -->
+      <Card v-else-if="!canCreate" class="border-destructive">
         <CardHeader>
-          <CardTitle>Create New Product</CardTitle>
-          <CardDescription>Add a new product to your catalog</CardDescription>
+          <CardTitle class="text-destructive">Access Denied</CardTitle>
+          <CardDescription>Only administrators can create products.</CardDescription>
         </CardHeader>
+        <CardFooter>
+          <Button @click="router.push('/products')">Return to Products</Button>
+        </CardFooter>
+      </Card>
+
+      <!-- Create product form (only for admins) -->
+      <div v-else>
+        <!-- Back button -->
+        <Button 
+          variant="ghost" 
+          class="mb-6 flex items-center gap-2" 
+          @click="router.push('/products')"
+        >
+          <ArrowLeft class="h-4 w-4" />
+          Back to Products
+        </Button>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Create New Product</CardTitle>
+            <CardDescription>Add a new product to your catalog (Admin only)</CardDescription>
+          </CardHeader>
         
         <CardContent>
           <!-- Error message -->
@@ -368,6 +450,7 @@ const isSubmitting = computed(() => form.meta.value.isSubmitting);
           </Form>
         </CardContent>
       </Card>
+      </div>
     </div>
   </div>
 </template>

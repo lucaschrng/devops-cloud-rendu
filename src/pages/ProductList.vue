@@ -1,19 +1,22 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { listProducts } from '../graphql/queries';
+import { listProductsWithComments } from '../graphql/custom-queries';
 import { useRouter } from 'vue-router';
 import api from '../utils/api-client';
+import { canCreateProducts } from '../utils/auth-utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, ArrowRight } from 'lucide-vue-next';
+import { PlusCircle, ArrowRight, MessageCircle } from 'lucide-vue-next';
 
 const router = useRouter();
 
 const products = ref([]);
 const loading = ref(true);
 const error = ref('');
+const canCreate = ref(false);
 
 // Fetch all products when component is mounted
 const fetchProducts = async () => {
@@ -22,7 +25,7 @@ const fetchProducts = async () => {
     error.value = '';
     
     const response = await api.graphql({
-      query: listProducts,
+      query: listProductsWithComments,
       variables: {
         limit: 100 // Adjust as needed
       }
@@ -37,6 +40,16 @@ const fetchProducts = async () => {
   }
 };
 
+// Check if user can create products
+const checkCreatePermissions = async () => {
+  try {
+    canCreate.value = await canCreateProducts();
+  } catch (error) {
+    console.error('Error checking create permissions:', error);
+    canCreate.value = false;
+  }
+};
+
 // Navigate to product detail page
 const viewProductDetails = (productId) => {
   router.push(`/product/${productId}`);
@@ -44,6 +57,7 @@ const viewProductDetails = (productId) => {
 
 onMounted(() => {
   fetchProducts();
+  checkCreatePermissions();
 });
 </script>
 
@@ -51,7 +65,7 @@ onMounted(() => {
   <div class="container mx-auto py-8 px-4">
     <div class="flex justify-between items-center mb-8">
       <h1 class="text-3xl font-bold">Products</h1>
-      <router-link to="/create-product">
+      <router-link v-if="canCreate" to="/create-product">
         <Button>
           <PlusCircle class="mr-2 h-4 w-4" />
           Create Product
@@ -80,9 +94,11 @@ onMounted(() => {
     <Card v-else-if="products.length === 0" class="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>No products found</CardTitle>
-        <CardDescription>Get started by creating your first product</CardDescription>
+        <CardDescription>
+          {{ canCreate ? 'Get started by creating your first product' : 'No products available at the moment' }}
+        </CardDescription>
       </CardHeader>
-      <CardFooter>
+      <CardFooter v-if="canCreate">
         <router-link to="/create-product" class="w-full">
           <Button class="w-full">
             <PlusCircle class="mr-2 h-4 w-4" />
@@ -120,10 +136,16 @@ onMounted(() => {
           </CardDescription>
         </CardHeader>
         
-        <CardFooter class="flex justify-between">
-          <Badge variant="outline" class="text-xs">
-            {{ new Date(product.createdAt).toLocaleDateString() }}
-          </Badge>
+        <CardFooter class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <Badge variant="outline" class="text-xs">
+              {{ new Date(product.createdAt).toLocaleDateString() }}
+            </Badge>
+            <div class="flex items-center gap-1 text-xs text-muted-foreground">
+              <MessageCircle class="h-3 w-3" />
+              {{ product.comments?.items?.length || 0 }}
+            </div>
+          </div>
           <Button variant="ghost" size="sm" class="gap-1">
             View
             <ArrowRight class="h-4 w-4" />

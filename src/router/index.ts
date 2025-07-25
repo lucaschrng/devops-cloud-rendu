@@ -5,6 +5,7 @@ import ProductDetail from '../pages/ProductDetail.vue'
 import Profile from '../pages/Profile.vue'
 import Login from '../pages/Login.vue'
 import Signup from '../pages/Signup.vue'
+import RolesInfo from '../pages/RolesInfo.vue'
 import { getCurrentUser } from 'aws-amplify/auth'
 
 // Define routes
@@ -47,6 +48,12 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: Profile,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/roles',
+    name: 'RolesInfo',
+    component: RolesInfo,
     meta: { requiresAuth: true }
   }
 ]

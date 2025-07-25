@@ -1,23 +1,73 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Sheet, 
   SheetContent, 
   SheetTrigger 
 } from '@/components/ui/sheet';
-import { Menu, X, User, Home, Package, PlusCircle, User2 } from 'lucide-vue-next';
+import { Menu, X, User, Home, Package, PlusCircle, User2, Shield, UserCheck, Info } from 'lucide-vue-next';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { useQuery } from '@tanstack/vue-query';
+import { getUserRoles, canCreateProducts } from '../../utils/auth-utils';
 
 const router = useRouter();
 const isOpen = ref(false);
 const isAuthenticated = ref(false);
+const userRoles = ref({ isAdmin: false, isUser: false, groups: [] });
+const canCreate = ref(false);
 
 const { data: authData, error } = useQuery({
   queryKey: ['auth'],
   queryFn: getCurrentUser,
+});
+
+// Computed property for navigation items based on user roles
+const navItems = computed(() => {
+  const items = [
+    { name: 'Home', path: '/', icon: Home, requiresAuth: false },
+    { name: 'Products', path: '/products', icon: Package, requiresAuth: false },
+  ];
+  
+  // Only show "Create Product" for admins
+  if (canCreate.value) {
+    items.push({ name: 'Create Product', path: '/create-product', icon: PlusCircle, requiresAuth: true });
+  }
+  
+  // Add roles info for authenticated users
+  if (authData.value && !error.value) {
+    items.push({ name: 'Roles Info', path: '/roles', icon: Info, requiresAuth: true });
+  }
+  
+  return items;
+});
+
+// Computed property for user role badge
+const userRoleBadge = computed(() => {
+  if (userRoles.value.isAdmin) {
+    return { text: 'Admin', variant: 'destructive', icon: Shield };
+  } else if (userRoles.value.isUser) {
+    return { text: 'User', variant: 'secondary', icon: UserCheck };
+  }
+  return null;
+});
+
+// Check user roles when component mounts
+const checkUserRoles = async () => {
+  try {
+    if (authData.value && !error.value) {
+      userRoles.value = await getUserRoles();
+      canCreate.value = await canCreateProducts();
+    }
+  } catch (err) {
+    console.error('Error checking user roles:', err);
+  }
+};
+
+onMounted(() => {
+  checkUserRoles();
 });
 
 const closeSheet = () => {
@@ -28,12 +78,6 @@ const navigateTo = (path) => {
   closeSheet();
   router.push(path);
 };
-
-const navItems = [
-  { name: 'Home', path: '/', icon: Home },
-  { name: 'Products', path: '/products', icon: Package },
-  { name: 'Create Product', path: '/create-product', icon: PlusCircle },
-];
 </script>
 
 <template>
@@ -55,6 +99,16 @@ const navItems = [
         </nav>
       </div>
       <div class="flex flex-1 items-center justify-end space-x-4">
+        <!-- User role badge (when authenticated) -->
+        <Badge 
+          v-if="authData && !error && userRoleBadge" 
+          :variant="userRoleBadge.variant"
+          class="hidden md:flex items-center gap-1"
+        >
+          <component :is="userRoleBadge.icon" class="h-3 w-3" />
+          {{ userRoleBadge.text }}
+        </Badge>
+        
         <nav class="flex items-center space-x-2">
           <!-- Show these buttons when user is not authenticated -->
           <template v-if="!authData || error">

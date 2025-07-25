@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'vue-sonner';
 import { useQueryClient } from '@tanstack/vue-query';
+import { ensureUserExists } from '../../utils/auth-utils';
 
 const queryClient = useQueryClient();
 const router = useRouter();
@@ -30,6 +31,15 @@ const handleLogin = async () => {
       username: username.value,
       password: password.value,
     });
+    
+    // Ensure user exists in DynamoDB after successful login
+    try {
+      await ensureUserExists();
+      console.log('User record verified/created in DynamoDB');
+    } catch (userError) {
+      console.warn('Failed to create/verify user record:', userError);
+      // Don't fail the login for this
+    }
     
     queryClient.invalidateQueries({ queryKey: ['auth'] });
     toast.success('Login successful!');
