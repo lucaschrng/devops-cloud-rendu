@@ -1,6 +1,8 @@
 {
   "version": "1",
   "cognitoConfig": {
+    "identityPoolName": "devopscloudrendua800a172_identitypool_66ead8f9",
+    "allowUnauthenticatedIdentities": false,
     "resourceNameTruncated": "devopsa800a172",
     "userPoolName": "devopscloudrendua800a172_userpool_a800a172",
     "autoVerifiedAttributes": [
@@ -52,15 +54,18 @@
       "profile"
     ],
     "userpoolClientLambdaRole": "devopsa800a172_userpoolclient_lambda_role",
-    "userpoolClientSetAttributes": true,
+    "userpoolClientSetAttributes": false,
     "sharedId": "a800a172",
     "resourceName": "devopscloudrendua800a172",
-    "authSelections": "userPoolOnly",
+    "authSelections": "identityPoolAndUserPool",
     "useDefault": "manual",
     "usernameAttributes": [
       "email"
     ],
-    "userPoolGroupList": [],
+    "userPoolGroupList": [
+      "Admin",
+      "User"
+    ],
     "serviceName": "Cognito",
     "usernameCaseSensitive": false,
     "useEnabledMfas": true,
@@ -77,15 +82,33 @@
       ]
     },
     "breakCircularDependency": true,
-    "dependsOn": [],
-    "userPoolGroups": false,
+    "dependsOn": [
+      {
+        "category": "function",
+        "resourceName": "devopscloudrendua800a172PostConfirmation",
+        "triggerProvider": "Cognito",
+        "attributes": [
+          "Arn",
+          "Name"
+        ]
+      }
+    ],
+    "userPoolGroups": true,
     "adminQueries": false,
-    "triggers": {},
+    "triggers": {
+      "PostConfirmation": [
+        "add-to-group",
+        "custom"
+      ]
+    },
     "hostedUI": false,
     "parentStack": {
       "Ref": "AWS::StackId"
     },
-    "permissions": [],
-    "authProviders": []
+    "permissions": [
+      "{\n  \"policyName\": \"AddToGroupCognito\",\n  \"trigger\": \"PostConfirmation\",\n  \"effect\": \"Allow\",\n  \"actions\": [\n    \"cognito-idp:AdminAddUserToGroup\",\n    \"cognito-idp:GetGroup\",\n    \"cognito-idp:CreateGroup\"\n  ],\n  \"resource\": {\n    \"paramType\": \"!GetAtt\",\n    \"keys\": [\n      \"UserPool\",\n      \"Arn\"\n    ]\n  }\n}"
+    ],
+    "authProviders": [],
+    "authTriggerConnections": "[\n  {\n    \"triggerType\": \"PostConfirmation\",\n    \"lambdaFunctionName\": \"devopscloudrendua800a172PostConfirmation\"\n  }\n]"
   }
 }

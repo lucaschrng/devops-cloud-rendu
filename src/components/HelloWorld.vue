@@ -21,7 +21,7 @@ const fetchUsers = async () => {
       query: getUserCount,
     });
 
-    userCount.value = response.data.users.totalCount;
+    userCount.value = response.data.getUserCount;
   } catch (err) {
     console.error('Error fetching users:', err);
     error.value = 'Failed to load users. Please try again later.';
@@ -39,8 +39,9 @@ const fetchProductCount = async () => {
     const response = await api.graphql({
       query: getProductCount,
     });
+    console.log(response.data.products.totalCount);
 
-    productCount.value = response.data.products.totalCount;
+    productCount.value = response.data.getProductCount;
   } catch (err) {
     console.error('Error fetching products:', err);
     error.value = 'Failed to load products. Please try again later.';

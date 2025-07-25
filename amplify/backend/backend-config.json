@@ -35,7 +35,17 @@
   "auth": {
     "devopscloudrendua800a172": {
       "customAuth": false,
-      "dependsOn": [],
+      "dependsOn": [
+        {
+          "attributes": [
+            "Arn",
+            "Name"
+          ],
+          "category": "function",
+          "resourceName": "devopscloudrendua800a172PostConfirmation",
+          "triggerProvider": "Cognito"
+        }
+      ],
       "frontendAuthConfig": {
         "mfaConfiguration": "OFF",
         "mfaTypes": [
@@ -58,11 +68,41 @@
       },
       "providerPlugin": "awscloudformation",
       "service": "Cognito"
+    },
+    "userPoolGroups": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId",
+            "AppClientIDWeb",
+            "AppClientID",
+            "IdentityPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "devopscloudrendua800a172"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Cognito-UserPool-Groups"
     }
   },
   "function": {
     "S3Triggere7efcf2e": {
       "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "devopscloudrendua800a172PostConfirmation": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput"
+          ],
+          "category": "api",
+          "resourceName": "devopscloudrendu"
+        }
+      ],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
@@ -113,6 +153,30 @@
         {
           "category": "function",
           "resourceName": "S3Triggere7efcf2e"
+        }
+      ]
+    },
+    "AMPLIFY_function_devopscloudrendua800a172PostConfirmation_GROUP": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "devopscloudrendua800a172PostConfirmation"
+        }
+      ]
+    },
+    "AMPLIFY_function_devopscloudrendua800a172PostConfirmation_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "devopscloudrendua800a172PostConfirmation"
+        }
+      ]
+    },
+    "AMPLIFY_function_devopscloudrendua800a172PostConfirmation_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "devopscloudrendua800a172PostConfirmation"
         }
       ]
     },
