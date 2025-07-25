@@ -2,30 +2,20 @@
 /* eslint-disable */
 //  This file was automatically generated and should not be edited.
 
-export type CreateUserInput = {
-  id?: string | null,
-  username: string,
-  email: string,
-  firstName?: string | null,
-  lastName?: string | null,
-  createdAt?: string | null,
-  updatedAt?: string | null,
-};
-
-export type ModelUserConditionInput = {
-  username?: ModelStringInput | null,
-  email?: ModelStringInput | null,
-  firstName?: ModelStringInput | null,
-  lastName?: ModelStringInput | null,
+export type ModelProductFilterInput = {
+  id?: ModelIDInput | null,
+  title?: ModelStringInput | null,
+  description?: ModelStringInput | null,
+  imageUrl?: ModelStringInput | null,
+  ownerId?: ModelIDInput | null,
   createdAt?: ModelStringInput | null,
   updatedAt?: ModelStringInput | null,
-  and?: Array< ModelUserConditionInput | null > | null,
-  or?: Array< ModelUserConditionInput | null > | null,
-  not?: ModelUserConditionInput | null,
-  owner?: ModelStringInput | null,
+  and?: Array< ModelProductFilterInput | null > | null,
+  or?: Array< ModelProductFilterInput | null > | null,
+  not?: ModelProductFilterInput | null,
 };
 
-export type ModelStringInput = {
+export type ModelIDInput = {
   ne?: string | null,
   eq?: string | null,
   le?: string | null,
@@ -65,18 +55,20 @@ export type ModelSizeInput = {
   between?: Array< number | null > | null,
 };
 
-export type User = {
-  __typename: "User",
-  id: string,
-  username: string,
-  email: string,
-  firstName?: string | null,
-  lastName?: string | null,
-  products?: ModelProductConnection | null,
-  comments?: ModelCommentConnection | null,
-  createdAt?: string | null,
-  updatedAt?: string | null,
-  owner?: string | null,
+export type ModelStringInput = {
+  ne?: string | null,
+  eq?: string | null,
+  le?: string | null,
+  lt?: string | null,
+  ge?: string | null,
+  gt?: string | null,
+  contains?: string | null,
+  notContains?: string | null,
+  between?: Array< string | null > | null,
+  beginsWith?: string | null,
+  attributeExists?: boolean | null,
+  attributeType?: ModelAttributeTypes | null,
+  size?: ModelSizeInput | null,
 };
 
 export type ModelProductConnection = {
@@ -98,6 +90,20 @@ export type Product = {
   updatedAt?: string | null,
 };
 
+export type User = {
+  __typename: "User",
+  id: string,
+  username: string,
+  email: string,
+  firstName?: string | null,
+  lastName?: string | null,
+  products?: ModelProductConnection | null,
+  comments?: ModelCommentConnection | null,
+  createdAt?: string | null,
+  updatedAt?: string | null,
+  owner?: string | null,
+};
+
 export type ModelCommentConnection = {
   __typename: "ModelCommentConnection",
   items:  Array<Comment | null >,
@@ -115,6 +121,69 @@ export type Comment = {
   createdAt?: string | null,
   updatedAt?: string | null,
   owner?: string | null,
+};
+
+export enum ModelSortDirection {
+  ASC = "ASC",
+  DESC = "DESC",
+}
+
+
+export type ModelCommentFilterInput = {
+  id?: ModelIDInput | null,
+  content?: ModelStringInput | null,
+  productId?: ModelIDInput | null,
+  authorId?: ModelIDInput | null,
+  createdAt?: ModelStringInput | null,
+  updatedAt?: ModelStringInput | null,
+  and?: Array< ModelCommentFilterInput | null > | null,
+  or?: Array< ModelCommentFilterInput | null > | null,
+  not?: ModelCommentFilterInput | null,
+  owner?: ModelStringInput | null,
+};
+
+export type CreateCommentInput = {
+  id?: string | null,
+  content: string,
+  productId: string,
+  authorId: string,
+  createdAt?: string | null,
+  updatedAt?: string | null,
+};
+
+export type ModelCommentConditionInput = {
+  content?: ModelStringInput | null,
+  productId?: ModelIDInput | null,
+  authorId?: ModelIDInput | null,
+  createdAt?: ModelStringInput | null,
+  updatedAt?: ModelStringInput | null,
+  and?: Array< ModelCommentConditionInput | null > | null,
+  or?: Array< ModelCommentConditionInput | null > | null,
+  not?: ModelCommentConditionInput | null,
+  owner?: ModelStringInput | null,
+};
+
+export type CreateUserInput = {
+  id?: string | null,
+  username: string,
+  email: string,
+  firstName?: string | null,
+  lastName?: string | null,
+  createdAt?: string | null,
+  updatedAt?: string | null,
+};
+
+export type ModelUserConditionInput = {
+  username?: ModelStringInput | null,
+  email?: ModelStringInput | null,
+  firstName?: ModelStringInput | null,
+  lastName?: ModelStringInput | null,
+  createdAt?: ModelStringInput | null,
+  updatedAt?: ModelStringInput | null,
+  and?: Array< ModelUserConditionInput | null > | null,
+  or?: Array< ModelUserConditionInput | null > | null,
+  not?: ModelUserConditionInput | null,
+  owner?: ModelStringInput | null,
 };
 
 export type UpdateUserInput = {
@@ -151,23 +220,6 @@ export type ModelProductConditionInput = {
   and?: Array< ModelProductConditionInput | null > | null,
   or?: Array< ModelProductConditionInput | null > | null,
   not?: ModelProductConditionInput | null,
-  owner?: ModelStringInput | null,
-};
-
-export type ModelIDInput = {
-  ne?: string | null,
-  eq?: string | null,
-  le?: string | null,
-  lt?: string | null,
-  ge?: string | null,
-  gt?: string | null,
-  contains?: string | null,
-  notContains?: string | null,
-  between?: Array< string | null > | null,
-  beginsWith?: string | null,
-  attributeExists?: boolean | null,
-  attributeType?: ModelAttributeTypes | null,
-  size?: ModelSizeInput | null,
 };
 
 export type UpdateProductInput = {
@@ -182,27 +234,6 @@ export type UpdateProductInput = {
 
 export type DeleteProductInput = {
   id: string,
-};
-
-export type CreateCommentInput = {
-  id?: string | null,
-  content: string,
-  productId: string,
-  authorId: string,
-  createdAt?: string | null,
-  updatedAt?: string | null,
-};
-
-export type ModelCommentConditionInput = {
-  content?: ModelStringInput | null,
-  productId?: ModelIDInput | null,
-  authorId?: ModelIDInput | null,
-  createdAt?: ModelStringInput | null,
-  updatedAt?: ModelStringInput | null,
-  and?: Array< ModelCommentConditionInput | null > | null,
-  or?: Array< ModelCommentConditionInput | null > | null,
-  not?: ModelCommentConditionInput | null,
-  owner?: ModelStringInput | null,
 };
 
 export type UpdateCommentInput = {
@@ -236,39 +267,6 @@ export type ModelUserConnection = {
   __typename: "ModelUserConnection",
   items:  Array<User | null >,
   nextToken?: string | null,
-};
-
-export type ModelProductFilterInput = {
-  id?: ModelIDInput | null,
-  title?: ModelStringInput | null,
-  description?: ModelStringInput | null,
-  imageUrl?: ModelStringInput | null,
-  ownerId?: ModelIDInput | null,
-  createdAt?: ModelStringInput | null,
-  updatedAt?: ModelStringInput | null,
-  and?: Array< ModelProductFilterInput | null > | null,
-  or?: Array< ModelProductFilterInput | null > | null,
-  not?: ModelProductFilterInput | null,
-  owner?: ModelStringInput | null,
-};
-
-export enum ModelSortDirection {
-  ASC = "ASC",
-  DESC = "DESC",
-}
-
-
-export type ModelCommentFilterInput = {
-  id?: ModelIDInput | null,
-  content?: ModelStringInput | null,
-  productId?: ModelIDInput | null,
-  authorId?: ModelIDInput | null,
-  createdAt?: ModelStringInput | null,
-  updatedAt?: ModelStringInput | null,
-  and?: Array< ModelCommentFilterInput | null > | null,
-  or?: Array< ModelCommentFilterInput | null > | null,
-  not?: ModelCommentFilterInput | null,
-  owner?: ModelStringInput | null,
 };
 
 export type ModelSubscriptionUserFilterInput = {
@@ -324,7 +322,6 @@ export type ModelSubscriptionProductFilterInput = {
   updatedAt?: ModelSubscriptionStringInput | null,
   and?: Array< ModelSubscriptionProductFilterInput | null > | null,
   or?: Array< ModelSubscriptionProductFilterInput | null > | null,
-  owner?: ModelStringInput | null,
 };
 
 export type ModelSubscriptionCommentFilterInput = {
@@ -337,6 +334,129 @@ export type ModelSubscriptionCommentFilterInput = {
   and?: Array< ModelSubscriptionCommentFilterInput | null > | null,
   or?: Array< ModelSubscriptionCommentFilterInput | null > | null,
   owner?: ModelStringInput | null,
+};
+
+export type ListProductsWithCommentsQueryVariables = {
+  filter?: ModelProductFilterInput | null,
+  limit?: number | null,
+  nextToken?: string | null,
+};
+
+export type ListProductsWithCommentsQuery = {
+  listProducts?:  {
+    __typename: "ModelProductConnection",
+    items:  Array< {
+      __typename: "Product",
+      id: string,
+      title: string,
+      description: string,
+      imageUrl?: string | null,
+      ownerId: string,
+      createdAt?: string | null,
+      updatedAt?: string | null,
+      comments?:  {
+        __typename: "ModelCommentConnection",
+        items:  Array< {
+          __typename: "Comment",
+          id: string,
+        } | null >,
+      } | null,
+    } | null >,
+    nextToken?: string | null,
+  } | null,
+};
+
+export type GetProductWithCommentsQueryVariables = {
+  id: string,
+};
+
+export type GetProductWithCommentsQuery = {
+  getProduct?:  {
+    __typename: "Product",
+    id: string,
+    title: string,
+    description: string,
+    imageUrl?: string | null,
+    ownerId: string,
+    createdAt?: string | null,
+    updatedAt?: string | null,
+    comments?:  {
+      __typename: "ModelCommentConnection",
+      items:  Array< {
+        __typename: "Comment",
+        id: string,
+        content: string,
+        createdAt?: string | null,
+        author?:  {
+          __typename: "User",
+          id: string,
+          username: string,
+          firstName?: string | null,
+          lastName?: string | null,
+        } | null,
+      } | null >,
+      nextToken?: string | null,
+    } | null,
+  } | null,
+};
+
+export type GetProductSafeQueryVariables = {
+  id: string,
+};
+
+export type GetProductSafeQuery = {
+  getProduct?:  {
+    __typename: "Product",
+    id: string,
+    title: string,
+    description: string,
+    imageUrl?: string | null,
+    ownerId: string,
+    createdAt?: string | null,
+    updatedAt?: string | null,
+  } | null,
+};
+
+export type CommentsByProductIdSafeQueryVariables = {
+  productId: string,
+  sortDirection?: ModelSortDirection | null,
+  filter?: ModelCommentFilterInput | null,
+  limit?: number | null,
+  nextToken?: string | null,
+};
+
+export type CommentsByProductIdSafeQuery = {
+  commentsByProductId?:  {
+    __typename: "ModelCommentConnection",
+    items:  Array< {
+      __typename: "Comment",
+      id: string,
+      content: string,
+      productId: string,
+      authorId: string,
+      createdAt?: string | null,
+      updatedAt?: string | null,
+    } | null >,
+    nextToken?: string | null,
+  } | null,
+};
+
+export type CreateCommentSafeMutationVariables = {
+  input: CreateCommentInput,
+  condition?: ModelCommentConditionInput | null,
+};
+
+export type CreateCommentSafeMutation = {
+  createComment?:  {
+    __typename: "Comment",
+    id: string,
+    content: string,
+    productId: string,
+    authorId: string,
+    createdAt?: string | null,
+    updatedAt?: string | null,
+    owner?: string | null,
+  } | null,
 };
 
 export type CreateUserMutationVariables = {
@@ -636,20 +756,6 @@ export type DeleteCommentMutation = {
   } | null,
 };
 
-export type GetUserCountQueryVariables = {
-};
-
-export type GetUserCountQuery = {
-  getUserCount?: number | null,
-};
-
-export type GetProductCountQueryVariables = {
-};
-
-export type GetProductCountQuery = {
-  getProductCount?: number | null,
-};
-
 export type GetUserQueryVariables = {
   id: string,
 };
@@ -891,6 +997,20 @@ export type CommentsByAuthorIdQuery = {
   } | null,
 };
 
+export type GetUserCountQueryVariables = {
+};
+
+export type GetUserCountQuery = {
+  getUserCount?: number | null,
+};
+
+export type GetProductCountQueryVariables = {
+};
+
+export type GetProductCountQuery = {
+  getProductCount?: number | null,
+};
+
 export type OnCreateUserSubscriptionVariables = {
   filter?: ModelSubscriptionUserFilterInput | null,
   owner?: string | null,
@@ -974,7 +1094,6 @@ export type OnDeleteUserSubscription = {
 
 export type OnCreateProductSubscriptionVariables = {
   filter?: ModelSubscriptionProductFilterInput | null,
-  owner?: string | null,
 };
 
 export type OnCreateProductSubscription = {
@@ -1007,7 +1126,6 @@ export type OnCreateProductSubscription = {
 
 export type OnUpdateProductSubscriptionVariables = {
   filter?: ModelSubscriptionProductFilterInput | null,
-  owner?: string | null,
 };
 
 export type OnUpdateProductSubscription = {
@@ -1040,7 +1158,6 @@ export type OnUpdateProductSubscription = {
 
 export type OnDeleteProductSubscriptionVariables = {
   filter?: ModelSubscriptionProductFilterInput | null,
-  owner?: string | null,
 };
 
 export type OnDeleteProductSubscription = {

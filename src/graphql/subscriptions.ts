@@ -92,11 +92,8 @@ export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser(
   APITypes.OnDeleteUserSubscriptionVariables,
   APITypes.OnDeleteUserSubscription
 >;
-export const onCreateProduct = /* GraphQL */ `subscription OnCreateProduct(
-  $filter: ModelSubscriptionProductFilterInput
-  $owner: String
-) {
-  onCreateProduct(filter: $filter, owner: $owner) {
+export const onCreateProduct = /* GraphQL */ `subscription OnCreateProduct($filter: ModelSubscriptionProductFilterInput) {
+  onCreateProduct(filter: $filter) {
     id
     title
     description
@@ -126,11 +123,8 @@ export const onCreateProduct = /* GraphQL */ `subscription OnCreateProduct(
   APITypes.OnCreateProductSubscriptionVariables,
   APITypes.OnCreateProductSubscription
 >;
-export const onUpdateProduct = /* GraphQL */ `subscription OnUpdateProduct(
-  $filter: ModelSubscriptionProductFilterInput
-  $owner: String
-) {
-  onUpdateProduct(filter: $filter, owner: $owner) {
+export const onUpdateProduct = /* GraphQL */ `subscription OnUpdateProduct($filter: ModelSubscriptionProductFilterInput) {
+  onUpdateProduct(filter: $filter) {
     id
     title
     description
@@ -160,11 +154,8 @@ export const onUpdateProduct = /* GraphQL */ `subscription OnUpdateProduct(
   APITypes.OnUpdateProductSubscriptionVariables,
   APITypes.OnUpdateProductSubscription
 >;
-export const onDeleteProduct = /* GraphQL */ `subscription OnDeleteProduct(
-  $filter: ModelSubscriptionProductFilterInput
-  $owner: String
-) {
-  onDeleteProduct(filter: $filter, owner: $owner) {
+export const onDeleteProduct = /* GraphQL */ `subscription OnDeleteProduct($filter: ModelSubscriptionProductFilterInput) {
+  onDeleteProduct(filter: $filter) {
     id
     title
     description
