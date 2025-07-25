@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 import { uploadData, getUrl } from 'aws-amplify/storage';
 import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 import { createProduct } from '../graphql/mutations';
+import { getUser, listUsers } from '../graphql/queries';
+import { createUser } from '../graphql/mutations';
 import { useRouter } from 'vue-router';
 import api from '../utils/api-client';
 import { useForm } from 'vee-validate';
@@ -68,8 +70,6 @@ const onSubmit = async (values) => {
     form.setFieldValue('isSubmitting', true);
     errorMessage.value = '';
     
-    // Authentication is now handled by the router guard
-    
     // Get the current session which includes the JWT token
     const { tokens } = await fetchAuthSession();
     if (!tokens) {
@@ -81,57 +81,107 @@ const onSubmit = async (values) => {
       return;
     }
     
-    // Get current user to get their ID for the ownerId field
-    const user = await getCurrentUser();
-    console.log('Current user:', user);
-    const userId = user.userId;
+    // Get current Cognito user
+    const cognitoUser = await getCurrentUser();
+    console.log('Current Cognito user:', cognitoUser);
+    
+    // Try to get user from DynamoDB, but don't fail if it doesn't exist
+    let userId = cognitoUser.userId; // Default to Cognito user ID
+    try {
+      const userResponse = await api.graphql({
+        query: getUser,
+        variables: { id: cognitoUser.userId }
+      });
+      
+      if (userResponse.data.getUser) {
+        userId = userResponse.data.getUser.id;
+        console.log('Found existing user:', userResponse.data.getUser);
+      }
+    } catch (userError) {
+      console.log('User not found in DynamoDB, using Cognito user ID directly');
+      // We'll use the Cognito user ID directly for now
+      // The user creation should happen through a different mechanism (like a Lambda trigger)
+      toast.info('User profile setup needed', {
+        description: 'Some features may be limited until profile is complete',
+      });
+    }
     
     let imageUrl = '';
     console.log(imageFile.value, 'Image file selected:', imageFile.value);
     
-    // Upload image if one was selected
     if (imageFile.value) {
       console.log('Uploading image:', imageFile.value);
-      const fileName = `products/${Date.now()}-${imageFile.value.name}`;
       
-      uploadData({
-        key: fileName,
-        data: imageFile.value,
-        options: {
-          contentType: imageFile.value.type
-        }
-      });
+      // Use correct Amplify v6 path structure
+      const fileName = `public/${Date.now()}-${imageFile.value.name}`;
+      
+      try {
+        console.log('Attempting S3 upload with public path...');
+      
+        const uploadResult = await uploadData({
+          path: fileName, 
+          data: imageFile.value,
+          options: {
+            contentType: imageFile.value.type
+          }
+        }).result;
 
-      console.log('Image uploaded successfully:', fileName);
-      
-      const result = await getUrl({
-        path: fileName,
-        options: {
-          validateObjectExistence: true, // Optional: validates file exists
-          expiresIn: 3600 // Optional: URL expiration in seconds (1 hour)
+        console.log('Image uploaded successfully:', uploadResult);
+
+        const result = await getUrl({
+          path: fileName  
+        });
+        
+        console.log('Image URL generated:', result);
+        imageUrl = result.url.toString();
+        
+      } catch (storageError) {
+        console.error('Public upload failed, trying protected:', storageError);
+     
+        try {
+          const protectedFileName = `protected/${cognitoUser.userId}/${Date.now()}-${imageFile.value.name}`;
+          
+          const uploadResult = await uploadData({
+            path: protectedFileName,
+            data: imageFile.value,
+            options: {
+              contentType: imageFile.value.type
+            }
+          }).result;
+
+          const result = await getUrl({
+            path: protectedFileName
+          });
+          
+          imageUrl = result.url.toString();
+          console.log('Protected upload successful');
+          
+        } catch (protectedError) {
+          console.error('Both upload methods failed:', protectedError);
+          toast.warning('Image upload failed', {
+            description: `Storage permissions issue: ${protectedError.message || 'Unknown error'}`,
+          });
+          imageUrl = '';
         }
-      });
-      console.log('Image URL generated:', result);
-      console.log('Image public URL:', result.url);
-      imageUrl = result.url.toString();
+      }
     }
-    
-    // Create product in the database
+
     const productInput = {
       title: values.title,
       description: values.description,
       imageUrl: imageUrl || null,
-      ownerId: userId // Add the required ownerId field
+      ownerId: userId
     };
 
     console.log('Creating product with input:', productInput);
     
     try {
-      // Use our centralized API client that automatically handles authentication
       const response = await api.graphql({
         query: createProduct,
         variables: { input: productInput }
       });
+      
+      console.log('Product created successfully:', response.data.createProduct);
       
       toast.success('Product created successfully', {
         description: 'Redirecting to products page...',
@@ -139,15 +189,21 @@ const onSubmit = async (values) => {
       
       // Redirect to products page after successful creation
       router.push('/products');
+      
     } catch (graphqlError) {
-      // If we get an error about the owner field, we can still consider this a success
-      // since the product was created but there's just an issue with the response
-      if (graphqlError.toString().includes('Cannot return null for non-nullable type') && 
-          graphqlError.toString().includes('owner')) {
-        console.warn('Product created but with owner field errors:', graphqlError);
+      // Check if the product was created but there are owner field errors
+      const hasOwnerErrors = graphqlError.errors && graphqlError.errors.some(error => 
+        error.message.includes('Cannot return null for non-nullable type') && 
+        error.path && error.path.includes('owner')
+      );
+      
+      const hasProductData = graphqlError.data && graphqlError.data.createProduct;
+      
+      if (hasOwnerErrors && hasProductData) {
+        console.warn('Product created but with owner field errors (User record missing in DynamoDB):', graphqlError);
         
         toast.success('Product created successfully', {
-          description: 'Redirecting to products page...',
+          description: 'Redirecting to products page... (Note: User profile setup needed)',
         });
         
         // Redirect to products page since the product was actually created
@@ -315,5 +371,3 @@ const isSubmitting = computed(() => form.meta.value.isSubmitting);
     </div>
   </div>
 </template>
-
-<!-- No need for scoped styles as we're using Tailwind CSS with shadcn-vue -->
